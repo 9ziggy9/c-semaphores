@@ -8,10 +8,9 @@
 #include <signal.h>
 #include "pool.h"
 
-// Dislike globals but won't worry for now...
 static void *M_LOC = NULL;
-static int SHM_FD = -1;
-static sem_t *SEM = NULL; // Pointer to the semaphore
+static sem_t *SEM  = NULL; // Pointer to the semaphore
+static int SHM_FD  = -1;
 
 void handle_sigint(int sig) {
   printf("\nReceived signal: %d. Unmapping shared memory and cleaning...", sig);

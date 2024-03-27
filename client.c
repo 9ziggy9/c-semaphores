@@ -9,32 +9,44 @@
 #include <signal.h>
 #include "pool.h"
 
-void broadcast_entry(char *m_loc, const char *client_name) {
+#define SZ_ARG_BUFFER 32
+static char CLIENT_NAME[SZ_ARG_BUFFER];
+
+void read_client_name(int num_args, char *cli_arg) {
+  if (num_args < 2) {
+    printf("ERROR: didn't supply client name.");
+    exit(EXIT_FAILURE);
+  }
+  strncpy(CLIENT_NAME, cli_arg, SZ_ARG_BUFFER);
+  CLIENT_NAME[SZ_ARG_BUFFER] = '\0';
+}
+
+void broadcast_entry(char *m_loc) {
   sem_t *SEM = sem_open(SEM_NAME, 0);
   if (SEM == SEM_FAILED) inform_and_panic("sem_open");
 
   sem_wait(SEM); // Acquire the semaphore before writing
-  sprintf(m_loc, "%s has entered the memory pool.\n", client_name);
+  sprintf(m_loc, "%s has entered the memory pool.\n", CLIENT_NAME);
   sem_post(SEM); // Release the semaphore
 }
 
-#define SZ_ARG_BUFFER 32
 int main(int argc, char *argv[]) {
-  if (argc < 2) {
-    printf("Usage: %s <client_name>\n", argv[0]);
-    exit(EXIT_FAILURE);
-  }
-  char client_name[SZ_ARG_BUFFER];
-  strncpy(client_name, argv[1], SZ_ARG_BUFFER);
-  client_name[SZ_ARG_BUFFER] = '\0';
+  read_client_name(argc, argv[1]);
 
   int shm_fd = shm_open(POOL_NAME, O_RDWR, 0666);
   if (shm_fd == -1) inform_and_panic("shm_open");
 
-  char *m_loc = mmap(0, MEM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+  char *m_loc = mmap(
+    0,
+    MEM_SIZE,
+    PROT_READ | PROT_WRITE,
+    MAP_SHARED,
+    shm_fd, 0
+  );
+
   if (m_loc == MAP_FAILED) inform_and_panic("mmap");
 
-  broadcast_entry(m_loc, client_name);
+  broadcast_entry(m_loc);
 
   while (1) {
     printf("%s", m_loc);
