@@ -18,7 +18,15 @@ define print_in_color
 	@printf "\033[0m"
 endef
 
+all: host client
+
 host: host.c
+	$(call print_in_color, $(YELLOW), \nCreating bin dir: $(BIN_DIR)\n)
+	mkdir -p $(BIN_DIR)
+	$(call print_in_color, $(YELLOW), \nCOMPILING $<:\n)
+	$(CC) $(CFLAGS) -o $(BIN_DIR)/$@ $<
+
+client: client.c
 	$(call print_in_color, $(YELLOW), \nCreating bin dir: $(BIN_DIR)\n)
 	mkdir -p $(BIN_DIR)
 	$(call print_in_color, $(YELLOW), \nCOMPILING $<:\n)
