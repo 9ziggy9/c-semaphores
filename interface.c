@@ -7,6 +7,7 @@ void exit_ncurses(WINDOW *);
 
 WINDOW *create_input_box(int, int, int, int);
 void destroy_input_box(WINDOW *, WINDOW **);
+void handle_input(WINDOW *);
 
 static const char *toolbar_txt = " <q: quit> <f1: input text> ";
 
@@ -20,6 +21,7 @@ int main(int argc, char *argv[]) {
 
   WINDOW *w_master = newwin(height, width, start_y, start_x);
   panic_null_win(w_master);
+  keypad(w_master, TRUE);
 
   box(w_master, 0, 0);
   mvwprintw(w_master, height - 1, 1, "%s", toolbar_txt);
@@ -30,12 +32,10 @@ int main(int argc, char *argv[]) {
   }
 
   int key;
-  WINDOW *w_input = NULL;
-  const int KEY_F1 = 27; // TODO: find cross-platform way
   while ((key = wgetch(w_master)) != 'q') {
-    if (key == KEY_F1 && w_input == NULL) {
-      w_input = create_input_box(height, width, start_y, start_x);
-    } else if (key == KEY_F1 && w_input != NULL) {
+    if (key == KEY_F(1)) {
+      WINDOW *w_input = create_input_box(height, width, start_y, start_x);
+      handle_input(w_input);
       destroy_input_box(w_master, &w_input);
     }
   }
@@ -48,19 +48,34 @@ int main(int argc, char *argv[]) {
 
 WINDOW *create_input_box(int height, int width, int start_y, int start_x)
 {
-    int input_height  = 3;
-    int input_width   = 30;
-    int input_start_y = start_y + height / 2 - input_height / 2;
-    int input_start_x = start_x + width / 2 - input_width / 2;
+    int input_height  = 8;
+    int input_width   = 35;
+    int input_start_y = start_y + (height - input_height) / 2;
+    int input_start_x = start_x + (width - input_width) / 2;
 
     WINDOW *w_input = newwin(input_height, input_width,
                              input_start_y, input_start_x);
     panic_null_win(w_input);
 
     box(w_input, 0, 0);
+    keypad(w_input, TRUE);
     curs_set(TRUE);
     wrefresh(w_input);
+
     return w_input;
+}
+
+void handle_input(WINDOW *w_input) {
+  // Input handling loop
+  char input_buffer[100]; // Adjust the buffer size as needed
+  int i = 0; int key;
+  while ((key = wgetch(w_input)) != KEY_F(1)) {
+    if (key == '\n') break;  // Enter key
+    input_buffer[i++] = (char) key;
+    wprintw(w_input, "%s", input_buffer); // Display the input in real-time
+    wrefresh(w_input);
+  }
+  input_buffer[i] = '\0'; // Null terminate the string 
 }
 
 // Double pointer to w_input necessary to prevent pointer from being passed
