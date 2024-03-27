@@ -6,13 +6,11 @@
 #include <semaphore.h>
 #include <string.h>
 #include <signal.h>
+#include "pool.h"
 
 // Dislike globals but won't worry for now...
 static void *M_LOC = NULL;
 static int SHM_FD = -1;
-static const size_t MEM_SIZE = 4096;
-static const char *POOL_NAME = "/mem_pool";
-static const char *SEM_NAME = "/mem_sem"; 
 static sem_t *SEM = NULL; // Pointer to the semaphore
 
 void handle_sigint(int sig) {
@@ -31,11 +29,6 @@ void handle_sigint(int sig) {
     SEM = NULL;
   }
   exit(EXIT_SUCCESS);
-}
-
-void inform_and_panic(char *source) {
-  perror(source);
-  exit(EXIT_FAILURE);
 }
 
 void broadcast_ran_num(char *origin) {
@@ -64,7 +57,9 @@ int main(int argc, char **argv) {
   SHM_FD = shm_open(POOL_NAME, O_CREAT | O_RDWR, 0666);
   if (SHM_FD == -1) inform_and_panic("shm_open");
 
-  if (ftruncate(SHM_FD, MEM_SIZE) == -1) inform_and_panic("ftruncate"); 
+  if (ftruncate(SHM_FD, (__off_t) MEM_SIZE) == -1) {
+    inform_and_panic("ftruncate"); 
+  }
 
   M_LOC = mmap(0, MEM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, SHM_FD, 0);
   if (M_LOC == MAP_FAILED) inform_and_panic("mmap");

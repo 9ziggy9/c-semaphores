@@ -1,28 +1,16 @@
-#include <fcntl.h>    // For O_* constants
-#include <sys/mman.h> // For shared memory
-#include <unistd.h>   // For ftruncate
-#include <stdio.h>    // For printf/puts
-#include <stdlib.h>   // For EXIT_FAILURE
+#include <fcntl.h>     // For O_* constants
+#include <sys/mman.h>  // For shared memory
+#include <unistd.h>    // For ftruncate
+#include <stdio.h>     // For printf/puts
+#include <stdlib.h>    // For EXIT_FAILURE
 #include <semaphore.h> // For semaphore operations
+#include <time.h>      // nanosleep() timespec
 #include <string.h>
 #include <signal.h>
-#include <time.h>
-
-static const size_t MEM_SIZE = 4096;
-static const char *POOL_NAME = "/mem_pool";
-static const char *SEM_NAME = "/mem_sem";
-static const struct timespec POLL_RATE = {
-  .tv_sec  = 0,
-  .tv_nsec = 16666667, // 1/60 sec
-};
-
-void inform_and_panic(char *source) {
-  perror(source);
-  exit(EXIT_FAILURE);
-}
+#include "pool.h"
 
 void broadcast_entry(char *m_loc, const char *client_name) {
-  sem_t *SEM = sem_open(SEM_NAME, 0); // Open the existing semaphore (no O_CREAT)
+  sem_t *SEM = sem_open(SEM_NAME, 0);
   if (SEM == SEM_FAILED) inform_and_panic("sem_open");
 
   sem_wait(SEM); // Acquire the semaphore before writing
@@ -30,12 +18,15 @@ void broadcast_entry(char *m_loc, const char *client_name) {
   sem_post(SEM); // Release the semaphore
 }
 
+#define SZ_ARG_BUFFER 32
 int main(int argc, char *argv[]) {
   if (argc < 2) {
     printf("Usage: %s <client_name>\n", argv[0]);
     exit(EXIT_FAILURE);
   }
-  const char *client_name = argv[1];
+  char client_name[SZ_ARG_BUFFER];
+  strncpy(client_name, argv[1], SZ_ARG_BUFFER);
+  client_name[SZ_ARG_BUFFER] = '\0';
 
   int shm_fd = shm_open(POOL_NAME, O_RDWR, 0666);
   if (shm_fd == -1) inform_and_panic("shm_open");
