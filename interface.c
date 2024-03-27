@@ -11,8 +11,8 @@ void destroy_input_box(WINDOW *, WINDOW **);
 char *handle_input(WINDOW *);
 void apply_border(int, int, int, int, const char *, const char *);
 
-static const char *master_toolbar_txt = "<q: quit> <f1: new message>";
-static const char *input_toolbar_txt = "<esc|f1: quit> <enter: send>";
+static const char *master_toolbar_txt = "<esc | q: quit> <f1: new message>";
+static const char *input_toolbar_txt = "<esc | f1: cancel> <enter: send>";
 
 // some missing char codes from ncurses
 #define KEY_ESC 27
@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
   wrefresh(w_master);
 
   for (int i = 1; i < argc; ++i) {
-    mvwprintw(w_master, i, 1, "- %s", argv[i]);
+    mvwprintw(w_master, i, 1, " -> %s", argv[i]);
   }
 
   while (true) {
@@ -78,11 +78,11 @@ void apply_border(int height, int width,
                   const char *title,
                   const char *tool_txt)
 {
-  WINDOW *w_border = newwin(height, width, start_y, start_x);
+  WINDOW *w_border = newwin(height + 2, width + 2, start_y - 1, start_x - 1);
   box(w_border, 0, 0);
 
-  int txt_end = (int) strlen(tool_txt) + 3;
-  mvwprintw(w_border, height - 1, width - txt_end, " %s ", tool_txt);
+  int txt_end = (int) strlen(tool_txt) + 1;
+  mvwprintw(w_border, height + 1, width - txt_end, " %s ", tool_txt);
   mvwprintw(w_border, 0, 1, " %s ", title);
 
   wrefresh(w_border);
@@ -96,13 +96,15 @@ WINDOW *create_input_box(int height, int width, int start_y, int start_x)
     int input_start_y = start_y + (height - input_height) / 2;
     int input_start_x = start_x + (width - input_width) / 2;
 
-    apply_border(input_height + 2, input_width + 2,
-                 input_start_y - 1, input_start_x - 1,
+
+    apply_border(input_height, input_width,
+                 input_start_y, input_start_x,
                  "message", input_toolbar_txt);
 
     WINDOW *w_input   = newwin(input_height, input_width,
                                input_start_y, input_start_x);
     panic_null_win(w_input);
+
 
     keypad(w_input, TRUE);
     curs_set(TRUE);
