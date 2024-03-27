@@ -37,6 +37,10 @@ pool.o: bin_dir pool.c
 	$(call print_in_color, $(BLUE), \nCOMPILING $@\n)
 	$(CC) $(CFLAGS) -c pool.c -o $(BIN_DIR)/$@ $(CLIBS)
 
+interface: bin_dir interface.c
+	$(call print_in_color, $(BLUE), \nCOMPILING interface.c\n)
+	$(CC) $(CFLAGS) interface.c -o $(BIN_DIR)/$@ -lncurses
+
 clean:
 	$(call print_in_color, $(GREEN), \nCleaning...\n)
 	rm -rf $(BIN_DIR)
