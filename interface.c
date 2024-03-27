@@ -8,7 +8,7 @@ void exit_ncurses(WINDOW *);
 WINDOW *create_input_box(int, int, int, int);
 void destroy_input_box(WINDOW *, WINDOW **);
 
-static const char *toolbar_txt = " <q: quit> <i: input text> ";
+static const char *toolbar_txt = " <q: quit> <f1: input text> ";
 
 int main(int argc, char *argv[]) {
   init_ncurses();
@@ -31,10 +31,11 @@ int main(int argc, char *argv[]) {
 
   int key;
   WINDOW *w_input = NULL;
+  const int KEY_F1 = 27; // TODO: find cross-platform way
   while ((key = wgetch(w_master)) != 'q') {
-    if (key == 'i' && w_input == NULL) {
+    if (key == KEY_F1 && w_input == NULL) {
       w_input = create_input_box(height, width, start_y, start_x);
-    } else if (key == 'i' && w_input != NULL) {
+    } else if (key == KEY_F1 && w_input != NULL) {
       destroy_input_box(w_master, &w_input);
     }
   }
