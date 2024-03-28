@@ -6,10 +6,14 @@ void panic_null_win(WINDOW *);
 void init_ncurses(void);
 void exit_ncurses(WINDOW *);
 
+
+WINDOW *create_master_win(int, int, int, int);
 WINDOW *create_input_box(int, int, int, int);
 void destroy_input_box(WINDOW *, WINDOW **);
 char *handle_input(WINDOW *);
-void apply_border(int, int, int, int, const char *, const char *);
+void apply_border(int, int, int, int,
+                  const char *, const char *,
+                  const chtype,   const chtype);
 
 static const char *master_toolbar_txt = "<esc | q: quit> <f1: new message>";
 static const char *input_toolbar_txt = "<esc | f1: cancel> <enter: send>";
@@ -26,11 +30,7 @@ int main(int argc, char *argv[]) {
   int start_y = (LINES - height) / 2;
   int start_x = (COLS - width) / 2;
 
-  apply_border(height, width, start_y, start_x, "feed", master_toolbar_txt);
-  WINDOW *w_master = newwin(height, width, start_y, start_x);
-  panic_null_win(w_master);
-  keypad(w_master, TRUE);
-  wrefresh(w_master);
+  WINDOW *w_master = create_master_win(height, width, start_y, start_x);
 
   int msg_id = 1;
   for (int i = 1; i < argc; ++i) {
@@ -111,14 +111,23 @@ char *handle_input(WINDOW *w_input) {
   Then ammend destroy function as needed.
 */
 
+WINDOW *create_master_win(int height, int width, int start_y, int start_x) {
+  WINDOW *w_master = newwin(height, width, start_y, start_x);
+  panic_null_win(w_master);
+  keypad(w_master, TRUE);
+  wrefresh(w_master);
+  return w_master;
+}
+
 void apply_border(int height, int width,
                   int start_y, int start_x,
                   const char *title,
-                  const char *tool_txt)
+                  const char *tool_txt,
+                  const chtype sym_y, const chtype sym_x)
 {
   WINDOW *w_border = newwin(height + 2, width + 2, start_y - 1, start_x - 1);
   panic_null_win(w_border);
-  box(w_border, 0, 0);
+  box(w_border, sym_y, sym_x);
 
   int txt_end = (int) strlen(tool_txt) + 1;
   mvwprintw(w_border, height + 1, width - txt_end, " %s ", tool_txt);
@@ -137,7 +146,8 @@ WINDOW *create_input_box(int height, int width, int start_y, int start_x)
 
   apply_border(input_height, input_width,
                input_start_y, input_start_x,
-               "message", input_toolbar_txt);
+               "message", input_toolbar_txt,
+               ACS_VLINE, ACS_HLINE);
 
   WINDOW *w_input   = newwin(input_height, input_width,
                              input_start_y, input_start_x);
@@ -174,7 +184,16 @@ void init_ncurses(void) {
   noecho();
   cbreak();
   curs_set(FALSE);
-  set_escdelay(0);
+  set_escdelay(0); // immediate escape key response
+
+  // stdscr border and tools bars
+  border(0,0,0,0,0,0,0,0);
+
+  int txt_end = (int) strlen(master_toolbar_txt) + 3;
+  mvprintw(LINES - 1, COLS - txt_end, " %s ", master_toolbar_txt);
+  mvprintw(0, 1, " %s ", "feed");
+
+  refresh();
 }
 
 void exit_ncurses(WINDOW *w) {
