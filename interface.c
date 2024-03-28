@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
   while (TRUE) {
     int key = wgetch(w_master);
     switch (key) {
-    case 'q': case KEY_ESC: { // 27 is esc ASCII code
+    case 'q': case KEY_ESC: {
       exit_ncurses(w_master);
     } break;
     case KEY_F(1): {
