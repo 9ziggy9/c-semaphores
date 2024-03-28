@@ -26,20 +26,19 @@ int main(int argc, char *argv[]) {
   int start_y = (LINES - height) / 2;
   int start_x = (COLS - width) / 2;
 
+  apply_border(height, width, start_y, start_x, "feed", master_toolbar_txt);
   WINDOW *w_master = newwin(height, width, start_y, start_x);
   panic_null_win(w_master);
   keypad(w_master, TRUE);
-
-  box(w_master, 0, 0);
-  mvwprintw(w_master, 0, width - 7, " %s ", "feed");
-  mvwprintw(w_master, height - 1, 1, " %s ", master_toolbar_txt);
   wrefresh(w_master);
 
+  int msg_id = 1;
   for (int i = 1; i < argc; ++i) {
     mvwprintw(w_master, i, 1, " -> %s", argv[i]);
+    msg_id++;
   }
 
-  while (true) {
+  while (TRUE) {
     int key = wgetch(w_master);
     switch (key) {
     case 'q': case KEY_ESC: { // 27 is esc ASCII code
@@ -47,7 +46,13 @@ int main(int argc, char *argv[]) {
     } break;
     case KEY_F(1): {
         WINDOW *w_input = create_input_box(height, width, start_y, start_x);
-        handle_input(w_input);
+        const char *msg_txt = handle_input(w_input);
+        if (msg_txt != NULL) {
+          mvwprintw(w_master,
+                    ++msg_id,
+                    width - (int) (strlen(msg_txt) + 5),
+                    " %s <- ", msg_txt);
+        }
         destroy_input_box(w_master, &w_input);
     } break;
     default:
@@ -56,61 +61,6 @@ int main(int argc, char *argv[]) {
   }
 
   return 0; // technically unreachable
-}
-
-/*
-  Not sure how smart this is. We refresh once padding is created, then
-  IMMEDIATELY delete, so that refreshes of embedded windows do not
-  alter the deleted padding. subwin is no good because then I still
-  need a reference to it, as it must be deleted BEFORE the originator.
-  Probably best to just use a product type here, i.e.:
-
-  typedef struct {
-    WINDOW *w_input;
-    WINDOW *w_border;
-  } INPUT_WIN;
-
-  Then ammend destroy function as needed.
-*/
-
-void apply_border(int height, int width,
-                  int start_y, int start_x,
-                  const char *title,
-                  const char *tool_txt)
-{
-  WINDOW *w_border = newwin(height + 2, width + 2, start_y - 1, start_x - 1);
-  box(w_border, 0, 0);
-
-  int txt_end = (int) strlen(tool_txt) + 1;
-  mvwprintw(w_border, height + 1, width - txt_end, " %s ", tool_txt);
-  mvwprintw(w_border, 0, 1, " %s ", title);
-
-  wrefresh(w_border);
-  delwin(w_border);
-}
-
-WINDOW *create_input_box(int height, int width, int start_y, int start_x)
-{
-    int input_height  = 6;
-    int input_width   = 50;
-    int input_start_y = start_y + (height - input_height) / 2;
-    int input_start_x = start_x + (width - input_width) / 2;
-
-
-    apply_border(input_height, input_width,
-                 input_start_y, input_start_x,
-                 "message", input_toolbar_txt);
-
-    WINDOW *w_input   = newwin(input_height, input_width,
-                               input_start_y, input_start_x);
-    panic_null_win(w_input);
-
-
-    keypad(w_input, TRUE);
-    curs_set(TRUE);
-    wrefresh(w_input);
-
-    return w_input;
 }
 
 char *handle_input(WINDOW *w_input) {
@@ -144,6 +94,60 @@ char *handle_input(WINDOW *w_input) {
     wprintw(w_input, "%s", input_buffer); // Print the current buffer content
     wrefresh(w_input);
   }
+}
+
+/*
+  Not sure how smart this is. We refresh once padding is created, then
+  IMMEDIATELY delete, so that refreshes of embedded windows do not
+  alter the deleted padding. subwin is no good because then I still
+  need a reference to it, as it must be deleted BEFORE the originator.
+  Probably best to just use a product type here, i.e.:
+
+  typedef struct {
+    WINDOW *w_input;
+    WINDOW *w_border;
+  } INPUT_WIN;
+
+  Then ammend destroy function as needed.
+*/
+
+void apply_border(int height, int width,
+                  int start_y, int start_x,
+                  const char *title,
+                  const char *tool_txt)
+{
+  WINDOW *w_border = newwin(height + 2, width + 2, start_y - 1, start_x - 1);
+  panic_null_win(w_border);
+  box(w_border, 0, 0);
+
+  int txt_end = (int) strlen(tool_txt) + 1;
+  mvwprintw(w_border, height + 1, width - txt_end, " %s ", tool_txt);
+  mvwprintw(w_border, 0, 1, " %s ", title);
+
+  wrefresh(w_border);
+  delwin(w_border);
+}
+
+WINDOW *create_input_box(int height, int width, int start_y, int start_x)
+{
+  int input_height  = 6;
+  int input_width   = 50;
+  int input_start_y = start_y + (height - input_height) / 2;
+  int input_start_x = start_x + (width - input_width) / 2;
+
+  apply_border(input_height, input_width,
+               input_start_y, input_start_x,
+               "message", input_toolbar_txt);
+
+  WINDOW *w_input   = newwin(input_height, input_width,
+                             input_start_y, input_start_x);
+  panic_null_win(w_input);
+
+  keypad(w_input, TRUE);
+  curs_set(TRUE);
+  wrefresh(w_input);
+
+  return w_input;
 }
 
 // Double pointer to w_input necessary to prevent pointer from being passed
